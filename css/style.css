@@ -1,0 +1,36 @@
+* {
+    margin: 0;
+    padding: 0;
+    font-family: Lato;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.main {
+    width: 75%;
+    margin: auto;
+}
+
+svg {
+    border: 1px #dadada solid;
+}
+
+.text-container {
+    height: 93px;
+    background-color: #e6e6e6;
+    margin-top: -3px;
+}
+
+#instruction1, #instruction2 {
+    padding: 2px 15px 5px 15px;
+
+    text-align: center;
+}
+
+#instruction2 {
+    color: #3692f7;
+    text-align: center;
+}

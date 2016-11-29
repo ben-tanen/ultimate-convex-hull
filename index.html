@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Learn the Ultimate Convex Hull</title>
+
+    <!-- importing jQuery, d3 v4, MathJax -->
+    <script src="js/lib/jquery.min.js"></script>
+    <script src="js/lib/d3.v4.min.js"></script>
+
+    <script type="text/x-mathjax-config">
+        MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});
+    </script>
+    <script type="text/javascript" async
+      src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_CHTML">
+    </script>
+
+    <!-- styling -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="header">
+        <h1>Learn the Ultimate Convex Hull</h1>
+        <h3>COMP-163: Computational Geometry</h3>
+    </div>
+
+    <div class="about">
+    </div>
+
+    <div class="main">
+        <div class="svg-container">
+        </div>
+
+        <div class="text-container">
+            <p id='instruction1'>Click on the canvas to add vertices - we'll be computing the convex hull of those points!</p>
+            <p id='instruction2'></p>
+        </div>
+
+        <!-- <button onclick="drawPath(d3.polygonHull(vertices));">Draw CH</button> -->
+    </div>
+
+    <div class="footer">
+    </div>
+
+    <!-- custom js files -->
+    <script src="js/polygon.js"></script>
+</body>
+</html>
