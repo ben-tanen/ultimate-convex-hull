@@ -9,6 +9,6 @@ This was done as a final project for Tufts' COMP-163: Computational Geometry (Fa
 #### TO DO
 
 - [x] Fix scaling / centering
+- [x] Add next and previous step buttons
 - [ ] Add collapsable text introduction / about
-- [ ] Add bounding back (instead of removing lower hull points)?
 - [ ] Add steps for rest of algorithm

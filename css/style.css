@@ -34,10 +34,43 @@
     opacity: 0;
 }
 
+.vertex.defocused {
+    opacity: 0.1;
+}
+
+.median {
+    stroke: steelblue;
+    stroke-width: 0.5;
+    fill: none;
+    opacity: 1;
+}
+
 .bridge {
     stroke: grey;
     stroke-width: 0.5;
     fill: none;
+    opacity: 1;
+    -webkit-transition: all 0.4s ease;
+    -moz-transition: all 0.4s ease;
+    -o-transition: all 0.4s ease;
+    transition: all 0.4s ease; 
+}
+
+.bridge.actual {
+    stroke: #00c2ff;
+    stroke-dasharray: 5;
+}
+
+.bridge.trial {
+
+}
+
+.bridge.test {
+    stroke: #ff00ff;
+}
+
+.bridge.removed, .median.removed {
+    opacity: 0 !important;
 }
 
 /* GUIDE STYLING */
