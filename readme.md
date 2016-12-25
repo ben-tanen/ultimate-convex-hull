@@ -8,7 +8,7 @@ This was done as a final project for Tufts' COMP-163: Computational Geometry (Fa
 
 #### TO DO
 
+- [x] Fix scaling / centering
 - [ ] Add collapsable text introduction / about
-- [ ] Fix scaling / centering
 - [ ] Add bounding back (instead of removing lower hull points)?
 - [ ] Add steps for rest of algorithm

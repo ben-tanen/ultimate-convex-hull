@@ -14,23 +14,76 @@
     margin: auto;
 }
 
-svg {
+.svg-container {
+    width: calc(100% - 4px);
+    padding: 0 1px 0 1px;
     border: 1px #dadada solid;
 }
 
-.text-container {
-    height: 93px;
+
+/* SVG STYLING */
+.vertex {
+    opacity: 1;
+    -webkit-transition: opacity 0.4s ease;
+    -moz-transition: opacity 0.4s ease;
+    -o-transition: opacity 0.4s ease;
+    transition: opacity 0.4s ease;   
+}
+
+.vertex.removed {
+    opacity: 0;
+}
+
+.bridge {
+    stroke: grey;
+    stroke-width: 0.5;
+    fill: none;
+}
+
+/* GUIDE STYLING */
+.guide-container {
+    height: 100px;
     background-color: #e6e6e6;
     margin-top: -3px;
+    font-size: 14px;
 }
 
-#instruction1, #instruction2 {
-    padding: 2px 15px 5px 15px;
+.prev-button, .next-button {
+    width: 73px;
+    height: 100%;
+    background-color: #cbdeea;
+    display: inline-block;
+    cursor: pointer;
+    vertical-align: top;
+    color: rgba(0,0,0,1);
 
+    -webkit-transition: all 0.5s ease;
+    -moz-transition: all 0.5s ease;
+    -o-transition: all 0.5s ease;
+    transition: all 0.5s ease;
+}
+
+.prev-button p, .next-button p {
     text-align: center;
+    margin-top: 33px;
 }
 
-#instruction2 {
-    color: #3692f7;
+.prev-button.disabled, .next-button.disabled {
+    background-color: #e0e0e0;
+    cursor: default;
+    color: rgba(0, 0, 0, 0.25);
+}
+
+.text-container {
+    margin-left: -2.75px;
+    margin-right: -2.75px;
+    width: calc(100% - 148px);
+    height: 100%;
+    display: inline-block;
+    vertical-align: top;
+}
+
+#instruction {
+    padding: 5px 15px 5px 15px;
     text-align: center;
 }

@@ -9,7 +9,17 @@
     <script src="js/lib/d3.v4.min.js"></script>
 
     <script type="text/x-mathjax-config">
-        MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});
+    MathJax.Hub.Config({
+        CommonHTML: {
+            scale: 100
+        },
+        "HTML-CSS": {
+            scale: 100
+        },
+        tex2jax: {
+            inlineMath: [['$','$'], ['\\(','\\)']]
+        }
+    });
     </script>
     <script type="text/javascript" async
       src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_CHTML">
@@ -31,12 +41,18 @@
         <div class="svg-container">
         </div>
 
-        <div class="text-container">
-            <p id='instruction1'>Click on the canvas to add vertices - we'll be computing the convex hull of those points!</p>
-            <p id='instruction2'></p>
-        </div>
+        <div class="guide-container">
+            <div class="prev-button disabled">
+                <p>Previous Step</p>
+            </div>
 
-        <!-- <button onclick="drawPath(d3.polygonHull(vertices));">Draw CH</button> -->
+            <div class="text-container">
+                <p id='instruction'>Click on the canvas to add vertices - we'll be computing the convex hull of those points!</p>
+            </div>
+
+            <div class="next-button disabled">
+                <p>Next<br />Step</p>
+            </div>
     </div>
 
     <div class="footer">
