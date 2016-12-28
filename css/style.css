@@ -24,6 +24,7 @@
 /* SVG STYLING */
 .vertex {
     opacity: 1;
+    radius: 5;
     -webkit-transition: opacity 0.4s ease;
     -moz-transition: opacity 0.4s ease;
     -o-transition: opacity 0.4s ease;
@@ -35,7 +36,7 @@
 }
 
 .vertex.defocused {
-    opacity: 0.1;
+    opacity: 0.15;
 }
 
 .median {
@@ -61,6 +62,11 @@
     stroke-dasharray: 5;
 }
 
+.bridge.actual.found {
+    stroke: #ff00ff;
+    stroke-dasharray: none;
+}
+
 .bridge.trial {
 
 }
@@ -70,6 +76,19 @@
 }
 
 .bridge.removed, .median.removed {
+    opacity: 0 !important;
+}
+
+.bounding-poly {
+    opacity: 1;
+    -webkit-transition: all 0.4s ease;
+    -moz-transition: all 0.4s ease;
+    -o-transition: all 0.4s ease;
+    transition: all 0.4s ease; 
+
+}
+
+.bounding-poly.removed {
     opacity: 0 !important;
 }
 
