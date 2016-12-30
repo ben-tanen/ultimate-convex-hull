@@ -701,10 +701,15 @@ var fxns = [
                 .transition(400)
                 .style('opacity', 1);
         },
-    },{ // step ...:
+    },{ // step 11:
         prev: function() {
             // disenable previous button
             $('.prev-button').addClass('disabled');
+            svg.select('.bounding-poly#a-1')
+                .classed('removed', true)
+                .transition()
+                .delay(400)
+                .remove()
         },
         next: function() {
             // find x_min and x_max
@@ -757,7 +762,7 @@ var fxns = [
 
 
         },
-    },{ // step ...:
+    },{ // step 12:
         prev: function() {
             svg.selectAll('.vertex#a-1-bounding').classed('removed', false);
             svg.selectAll('.bounding-poly#a-1').classed('removed', false);
