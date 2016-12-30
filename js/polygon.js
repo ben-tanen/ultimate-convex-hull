@@ -22,15 +22,15 @@ var instructions = [
     "This algorithm works by computing the upper or lower hulls of our points individually. If we want the full convex hull, we can just join the upper and lower hulls. For now, let's focus on the upper half of our points (i.e., those above the segment between $x_{min}$ and $x_{max}$).",
     "Now that we are working with just the upper points, we can begin computing the upper hull. This is a divide and conquer algorithm so we will first <b>divide</b> our points into two sets using the median $x$ value.",
     "With our points now divided into two sets, we want to find a <i>bridge</i> edge that will connect one hull point from our left set of points to another hull point in our right set of points. This bridge edge will be part of our convex hull and it will <b>merge</b> our divided sets.",
-    "This is the bridge edge that we are looking for, but how can we find it in $O(n)$ time? We want an edge with the same slope of $k$ so let's try drawing random edges between our points and see if we get an edge with slope of $k$.",
-    "With our random pairings, let's try out the median slope of our pairings to see if it is equal to $k$.",
-    "testing b",
-    "testing c",
-    "testing d",
+    "We can see this is the bridge edge that we are looking for, but how can we calculate this edge deterministically in $O(n)$ time? If we say our ideal edge has a slope of $k$, we can try out different values for $k^*$ and see if these form a bridge edge. To get some test values for $k^*$, let's try drawing random edges between our points and see what we get.",
+    "Now that we have a random pairing, let's see if the median slope of our pairings might get us our ideal slope $k$. To test, we can make a line with slope $k_{median}$ and sweep it vertically. Based on this sweep, we can determine if we've found $k$.",
+    "median trial 1 - you should not be seeing this... if you are, please let Ben know",
+    "median trial 2 - you should not be seeing this... if you are, please let Ben know",
+    "median trial 3 - you should not be seeing this... if you are, please let Ben know",
     "So we were able to find our bridge edge and we can see that this is the first edge in the convex hull. So how do we find the rest? Well, before moving forward, let's get rid of some vertices that we know won't be on the convex hull.",
-    "We can see that all of the points in this region will not be on the convex hull. So to speed up our search, let's remove these points and then recurse on our left and right sides.",
-    "testing g",
-    "testing h",
+    "We can see that all of the points in this region will not be on the convex hull since the convex hull is at least as big as this bounding box. So to speed up our search, let's remove these points and then recurse on our left and right sides to find more bridges.",
+    "Now that we found our first bridge that connects two divided sets, we can now see that we've reduced our problem (by removing unnecessary points) so that we can recurse on two smaller sub-problems. Essentially, we can just repeat the same process on our blue points and our red points to get the convex hull of those sets. So let's see what it looks like when we recurse on one of these sub-problems.",
+    "With a fraction of the original points, we can again partition our subproblem and arbitrarily pair our points in a search for for our next bridge.",
 ];
 
 /******************/
@@ -181,6 +181,7 @@ function drawMedianTrialBridge(id) {
     var bbox   = actual_bridge.getBBox();
     var bbox_c = [bbox.x + bbox.width / 2, bbox.y + bbox.height / 2];
 
+    // center median line
     var l_min = [bbox_c[0] - (bbox.width / 2), bbox_c[1] + (bbox.width / 2) * d3.median(ks)],
         l_max = [bbox_c[0] + (bbox.width / 2), bbox_c[1] - (bbox.width / 2) * d3.median(ks)];
 
@@ -459,11 +460,11 @@ var fxns = [
             var k = getLineSlope($('.bridge.actual#a-1')[0]);
             var t = getLineSlope($('.bridge.test#a-1-1')[0]);
             if (t == k) {
-                updateInstructions("As we can see, our test edge is a perfect match!");
+                updateInstructions("As we can see, our test edge with slope $k_{median}$ does form a bridge between red and blue points. So we found our bridge edge!");
             } else if (t < k) {
-                updateInstructions("As we can see, our median slope is too shallow so we will have to try again. In order to prune our search, we should get rid of $\\frac{1}{4}$ of our points by ignoring the right endpoints of our shallow lines. With fewer points, hopefully we'll have better luck!");
+                updateInstructions("As we can see, our median slope is too shallow so we will have to try again. In order to prune our search, we should get rid of $\\frac{1}{4}$ of our points by ignoring the right endpoints of our shallow lines since they appear to be skewing $k_{median}$. With fewer points, hopefully we'll have better luck!");
             } else {
-                updateInstructions("As we can see, our median slope is too steep so we will have to try again. In order to prune our search, we should get rid of $\\frac{1}{4}$ of our points by ignoring the left endpoints of our steep lines. With fewer points, hopefully we'll have better luck!");
+                updateInstructions("As we can see, our median slope is too steep so we will have to try again. In order to prune our search, we should get rid of $\\frac{1}{4}$ of our points by ignoring the left endpoints of our steep lines since they appear to be skewing $k_{median}$. With fewer points, hopefully we'll have better luck!");
             }
 
             // store backups
@@ -548,11 +549,11 @@ var fxns = [
             var k = getLineSlope($('.bridge.actual#a-1')[0]);
             var t = getLineSlope($('.bridge.test#a-1-1')[0]);
             if (t == k) {
-                updateInstructions("Success! Our median slope is a perfect match so we found our bridge!");
+                updateInstructions("As we can see, our test edge with slope $k_{median}$ does form a bridge between red and blue points. So we found our bridge edge!");
             } else if (t < k) {
-                updateInstructions("As we can see, our median slope is too shallow so we will have to try again. In order to prune our search, we should get rid of $\\frac{1}{4}$ of our points by ignoring the right endpoints of our shallow lines. With fewer points, hopefully we'll have better luck!");
+                updateInstructions("As we can see, our median slope is too shallow so we will have to try again. In order to prune our search, we should get rid of $\\frac{1}{4}$ of our points by ignoring the right endpoints of our shallow lines since they appear to be skewing $k_{median}$. With fewer points, hopefully we'll have better luck!");
             } else {
-                updateInstructions("As we can see, our median slope is too steep so we will have to try again. In order to prune our search, we should get rid of $\\frac{1}{4}$ of our points by ignoring the left endpoints of our steep lines. With fewer points, hopefully we'll have better luck!");
+                updateInstructions("As we can see, our median slope is too steep so we will have to try again. In order to prune our search, we should get rid of $\\frac{1}{4}$ of our points by ignoring the left endpoints of our steep lines since they appear to be skewing $k_{median}$. With fewer points, hopefully we'll have better luck!");
             }
 
             // reveal bridges from previous step
@@ -610,7 +611,7 @@ var fxns = [
                 if (t == k) {
                     updateInstructions("Success! Our median slope is a perfect match so we found our bridge!");
                 } else {
-                    updateInstructions("Unfortunately, this recursive process can take a number of iterations so let's skip to actually finding our bridge edge.");
+                    updateInstructions("Unfortunately, this recursive process can take a number of iterations. However, you can see that we will ignore more and more points until we are able to find $k$, likely when we just have two points left. Because it can take awhile, let's skip ahead to where we actually find our bridge edge.");
                 }
             }, 1600);
         },
@@ -722,22 +723,85 @@ var fxns = [
                 v_left  = [bbox.x, bbox.y + (slope >= 0 ? bbox.height : 0)],
                 v_right = [bbox.x + bbox.width, bbox.y + (slope >= 0 ? 0 : bbox.height)];
 
+            // add buffer to polygon points
+            v_left[0]  = v_left[0] + 1;
+            v_right[0] = v_right[0] - 1;
+            x_min[0]   = x_min[0] + 1;
+            x_max[0]   = x_max[0] - 1;
+
             svg.selectAll('.vertex')
                 .each(function(d) {
-                    var p = d3.select(this);
-                    if (d3.polygonContains([x_min, v_left, v_right, x_max, x_min], d) && !p.classed('removed')) {
+                    var p     = d3.select(this);
+                    var coors = [parseFloat(p.attr("cx")), parseFloat(p.attr("cy"))];
+                    var poly  = [x_min, v_left, v_right, x_max, x_min];
+
+                    if (d3.polygonContains(poly, coors) 
+                            && !p.classed('removed')
+                            && poly.indexOf(coors) == -1) {
                         p.classed('removed', true).attr('id', 'a-1-bounding');
                     }
                 });
 
             setTimeout(function() {
                 svg.selectAll('.bounding-poly#a-1').classed('removed', true);
+
+                var bbox = $('.bridge.actual#a-1')[0].getBBox();
+
+                svg.selectAll('.vertex')
+                    .style("fill", function() {
+                        var p = d3.select(this);
+                        if (parseFloat(p.attr("cx")) < bbox.x + bbox.width / 2) return "#00adff";
+                        else return "#f95968";
+                    });
             }, 800);
+
+
         },
     },{ // step ...:
         prev: function() {
             svg.selectAll('.vertex#a-1-bounding').classed('removed', false);
             svg.selectAll('.bounding-poly#a-1').classed('removed', false);
+            svg.selectAll('.vertex').style('fill', 'black');
+        },
+        next: function() {
+            // store back up
+            vertices_backup['a-1'] = vertices.slice(0);
+            vertices = [ ];
+
+            var bbox = $('.bridge.actual#a-1')[0].getBBox();
+
+            svg.selectAll('.vertex')
+                .each(function() { 
+                    var p = d3.select(this);
+                    var coor = [parseFloat(p.attr("cx")), parseFloat(p.attr("cy"))];
+                    if (!p.classed('removed') && parseFloat(p.attr("cx")) < bbox.x + bbox.width / 2) {
+                        vertices.push(coor);
+                    } else if (!p.classed('removed')) {
+                        p.classed('defocused', true);
+                    }
+                });
+
+            if (vertices.length <= 1) {
+                svg.selectAll('.vertex')
+                    .each(function() { 
+                        var p = d3.select(this);
+                        var coor = [parseFloat(p.attr("cx")), parseFloat(p.attr("cy"))];
+                        if (!p.classed('removed') && parseFloat(p.attr("cx")) > bbox.x + bbox.width / 2) {
+                            vertices.push(coor);
+                            p.classed('defocused', false);
+                        } else if (!p.classed('removed')) {
+                            p.classed('defocused', true);
+                        }
+                    });
+            }
+        },
+    },{ // step ...:
+        prev: function() {
+            // revert to back up
+            vertices = vertices_backup['a-1'].slice(0);
+
+            svg.selectAll('.vertex')
+                .classed('defocused', false);
         },
         next: function() { },
     }
@@ -746,7 +810,7 @@ var fxns = [
 // enable forward and back step buttons
 $(document).ready(function() {
     $('.next-button').click(function() {
-        console.log(fxn_i);
+        console.log('fxn step: ', fxn_i);
 
         if (fxn_i < fxns.length - 1 && !$('.next-button').hasClass('disabled')) {
             updateInstructions(instructions[fxn_i + 1]);
@@ -759,7 +823,7 @@ $(document).ready(function() {
     });    
 
     $('.prev-button').click(function() {
-        console.log(fxn_i);
+        console.log('fxn step: ', fxn_i);
 
         if (fxn_i > 0 && !$('.prev-button').hasClass('disabled')) {
             updateInstructions(instructions[fxn_i - 1]);
