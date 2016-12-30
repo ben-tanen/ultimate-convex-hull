@@ -18,7 +18,7 @@ var line = d3.line()
 var fxn_i = 0;
 
 var instructions = [
-    "Click on the canvas to add vertices - we'll be computing the convex hull of those points!",
+    "Click on the canvas to add vertices - we'll be computing the convex hull of those points so add a few! You can also hit the spacebar to add random points.",
     "This algorithm works by computing the upper or lower hulls of our points individually. If we want the full convex hull, we can just join the upper and lower hulls. For now, let's focus on the upper half of our points (i.e., those above the segment between $x_{min}$ and $x_{max}$).",
     "Now that we are working with just the upper points, we can begin computing the upper hull. This is a divide and conquer algorithm so we will first <b>divide</b> our points into two sets using the median $x$ value.",
     "With our points now divided into two sets, we want to find a <i>bridge</i> edge that will connect one hull point from our left set of points to another hull point in our right set of points. This bridge edge will be part of our convex hull and it will <b>merge</b> our divided sets.",
@@ -30,7 +30,17 @@ var instructions = [
     "So we were able to find our bridge edge and we can see that this is the first edge in the convex hull. So how do we find the rest? Well, before moving forward, let's get rid of some vertices that we know won't be on the convex hull.",
     "We can see that all of the points in this region will not be on the convex hull since the convex hull is at least as big as this bounding box. So to speed up our search, let's remove these points and then recurse on our left and right sides to find more bridges.",
     "Now that we found our first bridge that connects two divided sets, we can now see that we've reduced our problem (by removing unnecessary points) so that we can recurse on two smaller sub-problems. Essentially, we can just repeat the same process on our blue points and our red points to get the convex hull of those sets. So let's see what it looks like when we recurse on one of these sub-problems.",
-    "With a fraction of the original points, we can again partition our subproblem and arbitrarily pair our points in a search for for our next bridge.",
+    "With a fraction of the original points, we can again partition our subproblem and arbitrarily pair our points in a search for for our next bridge. So first let's partition them, this time into orange and green sets.",
+    "Now that we have our orange and green sets divided, let's find a bridge edge between the two. Since we're using the same process as before, let's fast forward through it.",
+    "",
+    "testing a",
+
+];
+
+var color_pairs = [
+    ["#00ADFF", "#F95968"],
+    ["#FF8552", "#61E8AE"],
+    ["#B5438F", "#7FD1B9"],
 ];
 
 /******************/
@@ -101,8 +111,16 @@ function centerPoints(points) {
                 .attr("cx", parseFloat(p.attr("cx")) + translate_x)
                 .attr("cy", parseFloat(p.attr("cy")) + translate_y);
 
-            if (!p.classed("removed")) vertices.push([parseFloat(p.attr("cx")) + translate_x, parseFloat(p.attr("cy")) + translate_y]);
+            if (!p.classed("removed") && !p.classed("defocused")) {
+                vertices.push([parseFloat(p.attr("cx")) + translate_x, parseFloat(p.attr("cy")) + translate_y]);
+            }
         });
+
+    // also translate any bridges
+    d3.selectAll(".bridge")
+        .transition()
+        .duration(400)
+        .attr("transform", "translate(" + translate_x + "," + translate_y + ")");
 }
 
 function scalePoints(points, scale) {
@@ -172,7 +190,7 @@ function getLineSlope(line_path) {
     return s * bbox.height / bbox.width;
 }
 
-function drawMedianTrialBridge(id) {
+function drawMedianTrialBridge(id, speed, delay1, delay2) {
     var actual_bridge = $('.bridge.actual#' + id.split("-").splice(0,2).join("-"))[0],
         trial_bridges = $('.bridge.trial#' + id);
     var k  = getLineSlope(actual_bridge);
@@ -220,39 +238,144 @@ function drawMedianTrialBridge(id) {
         .attr('d', line([l_min, l_max]) + 'Z')
         .style('opacity', 0)
         .transition()
+        .delay(delay2)
         .style('opacity', 1)
         .transition()
-        .delay(800)
-        .duration(1000)
+        .delay(delay1)
+        .duration(speed)
         .attr('transform', 'translate(0,' + offset_y + ')');
-
 }
 
-function defocusExtremeVertices(id) {
+function defocusExtremeVertices(id, delay) {
     var actual_bridge = $('.bridge.actual#' + id.split("-").splice(0,2).join("-"))[0],
         test_bridge   = $('.bridge.test#' + id)[0];
 
-    var ep = 0.0000001
+    var pairs = pairs_backup[id];
 
-    for (var i = 0; i < pairs.length; i++) {
-        var pair_slope = -(pairs[i][0][1] - pairs[i][1][1]) / (pairs[i][0][0] - pairs[i][1][0]);
-        
-        var p_defocus = [ ]
-        if (pair_slope - ep <= getLineSlope(test_bridge) && getLineSlope(test_bridge) < getLineSlope(actual_bridge)) {
-            p_defocus = (pairs[i][0][0] < pairs[i][1][0] ? pairs[i][1] : pairs[i][0]);
-        } else if (pair_slope + ep >= getLineSlope(test_bridge) && getLineSlope(test_bridge) > getLineSlope(actual_bridge)) {
-            p_defocus = (pairs[i][0][0] < pairs[i][1][0] ? pairs[i][0] : pairs[i][1]);
+    var ep = 0.000005;
+
+    setTimeout(function() {
+        for (var i = 0; i < pairs.length; i++) {
+            var k      = getLineSlope(actual_bridge);
+            var k_med  = getLineSlope(test_bridge);
+            var k_pair = -(pairs[i][0][1] - pairs[i][1][1]) / (pairs[i][0][0] - pairs[i][1][0]);
+            
+            var p_defocus = [ ]
+            if (k_pair - ep <= k_med && k_med < k) {
+                p_defocus = (pairs[i][0][0] < pairs[i][1][0] ? pairs[i][1] : pairs[i][0]);
+            } else if (k_pair + ep >= k_med && k_med > k) {
+                p_defocus = (pairs[i][0][0] < pairs[i][1][0] ? pairs[i][0] : pairs[i][1]);
+            }
+
+            if (p_defocus.length != 0) vertices.splice(vertices.indexOf(p_defocus), 1);
+
+            svg.selectAll("circle")
+                .each(function(d) {
+                    var p         = d3.select(this),
+                        [p_x,p_y] = [parseFloat(p.attr("cx")), parseFloat(p.attr("cy"))];
+                    if (p_x == p_defocus[0] && p_y == p_defocus[1]) {
+                        p.classed('defocused', true).attr('id', id);
+                    }
+                });
         }
+    }, delay);
+}
 
-        if (p_defocus.length != 0) vertices.splice(vertices.indexOf(p_defocus), 1);
+function animateBridgeFinding_recursive(vertices, id, trial) {
+    var e = 0.000005;
+    var k = getLineSlope($('.bridge.actual#' + id)[0]);
+    var trial_delay = 2000;
 
-        svg.selectAll("circle")
-            .each(function(d) {
-                var p         = d3.select(this),
-                    [p_x,p_y] = [parseFloat(p.attr("cx")), parseFloat(p.attr("cy"))];
-                if (p_x == p_defocus[0] && p_y == p_defocus[1]) p.classed('defocused', true);
-            });
+    // hide previous pairings and median test
+    svg.selectAll('.bridge.trial#' + id + '-' + (trial - 1))
+        .transition()
+        .style('opacity', 0);
+    svg.selectAll('.bridge.test#' + id + '-' + (trial - 1))
+        .transition()
+        .style('opacity', 0);
+
+    // form random pairs
+    var pairs = randomlyPairPoints(vertices.slice(0));
+    pairs_backup[id + '-' + trial] = pairs;
+
+    // draw pair bridges
+    for (var i = 0; i < pairs.length; i++) {
+        svg.append('path')
+            .classed('bridge', true)
+            .classed('trial', true)
+            .attr('id', id + '-' + trial)
+            .attr('d', line([pairs[i][0], pairs[i][1]]) + 'Z')
+            .style('opacity', 0)
+            .transition()
+            .style('opacity', 1);
     }
+
+    drawMedianTrialBridge(id + '-' + trial, 500, 400, 200);
+
+    setTimeout(function() {
+        var k_med = getLineSlope($('.bridge.test#' + id + '-' + trial)[0]);
+        if (k_med - e > k || k_med + e < k) defocusExtremeVertices(id + '-' + trial, 0);
+    }, 1200);
+
+    setTimeout(function() {
+        var k_med = getLineSlope($('.bridge.test#' + id + '-' + trial)[0]);
+        if (k_med - e > k || k_med + e < k) animateBridgeFinding_recursive(vertices, id, trial + 1);
+        else {
+            // reveal actual bridge
+            svg.select('.bridge.actual#' + id)
+                .classed('removed', false)
+                .classed('found', true);
+
+            // refocus vertices
+            svg.selectAll('.vertex')
+                .filter(function() {
+                    var p = d3.select(this);
+                    return p.attr('id') == null || p.attr('id').includes(id);
+                })
+                .classed('defocused', false);
+
+            // remove all test and trial bridges
+            svg.selectAll('.bridge.test')
+                .filter(function() {
+                    var b = d3.select(this);
+                    return b.attr('id').includes(id);
+                })
+                .transition()
+                .delay(400)
+                .remove()
+
+            svg.selectAll('.bridge.trial')
+                .filter(function() {
+                    var b = d3.select(this);
+                    return b.attr('id').includes(id);
+                })
+                .transition()
+                .delay(400)
+                .remove()
+        }
+    }, trial_delay);
+
+}
+
+function animateBridgeFinding(vertices, id) {
+    var trial = 1;
+    var [xs, ys] = unzip(vertices);
+
+    // calculate actual bridge slope
+    var ch = d3.polygonHull(vertices);
+    for (var i = 1; i < ch.length; i++) {
+        if (ch[i][0] < d3.median(xs) && ch[i-1][0] >= d3.median(xs)) {
+            svg.append('path')
+                .classed('bridge', true)
+                .classed('actual', true)
+                .classed('removed', true)
+                .attr('id', id)
+                .attr('d', line([ch[i], ch[i-1]]) + 'Z');
+            var k = -(ch[i][1] - ch[i-1][1]) / (ch[i][0] - ch[i-1][0]);
+        }
+    }
+
+    animateBridgeFinding_recursive(vertices, id, 1);    
 }
 
 /*************/
@@ -263,10 +386,13 @@ var svg = d3.select(".svg-container").append("svg")
     .attr("width", width)
     .attr("height", height)
     .on("click", function() {
-        if (vertices.length == 0) $('.next-button').removeClass('disabled');
         if (fxn_i == 0) {
             vertices.push(d3.mouse(this));
             redrawVerticies();
+
+            // check if at least 5 edges in convex hull
+            var ch = d3.polygonHull(vertices);
+            if (ch && ch.length >= 5) $('.next-button').removeClass('disabled');
         }
     });
 
@@ -284,10 +410,22 @@ function updateInstructions(text) {
     setTimeout(function() { MathJax.Hub.Queue(["Typeset",MathJax.Hub]); }, 300);
 }
 
+function disableProgressButtons(time) {
+    $('.next-button').addClass("disabled");
+    $('.prev-button').addClass("disabled");
+
+    setTimeout(function() {
+        if (fxn_i < fxns.length - 1) $('.next-button').removeClass("disabled");
+        if (fxn_i > 0) $('.prev-button').removeClass("disabled");
+    }, time);
+}
+
 var fxns = [
     {   // step 1: draw hull divider 
         // draw hull divider 
         next: function() {
+            disableProgressButtons(400);
+
             var [xs, ys] = unzip(vertices);
 
             var x_min = [width, 0],
@@ -298,7 +436,6 @@ var fxns = [
             }
 
             svg.append('path')
-                .classed('bridge', true)
                 .attr('id', 'hull-divider')
                 .attr('d', line([x_min, x_max]) + 'Z')
                 .style('opacity', 0)
@@ -311,6 +448,8 @@ var fxns = [
     },{ // step 2: focus on upper hull 
         // delete hull divider
         prev: function() {
+            disableProgressButtons(400);
+
             svg.selectAll('#hull-divider')
                 .classed("removed", true)
                 .transition()
@@ -323,9 +462,8 @@ var fxns = [
 
         // remove lower hull and refocus 
         next: function() {
-            // disable next button (while animating)
-            $('.next-button').addClass("disabled");
-            $('.prev-button').addClass("disabled");
+            // disable progress buttons while animating
+            disableProgressButtons(2400);
 
             // find x_min and x_max
             var [xs, ys] = unzip(vertices);
@@ -369,16 +507,12 @@ var fxns = [
             setTimeout(function() {
                 scalePoints(vertices, calcScale(vertices, 0.75));
             }, 2000);
-
-            // re-enable next step button
-            setTimeout(function() {
-                $('.next-button').removeClass("disabled");
-                $('.prev-button').removeClass("disabled");
-            }, 2400);
         }     
     },{ // step 3: first coloring 
         // re-add lower hull and divider
         prev: function() {
+            disableProgressButtons(800);
+
             // fade out all vertices
             svg.selectAll('circle').classed('removed', true);
 
@@ -404,6 +538,8 @@ var fxns = [
 
         // draw first median and color
         next: function() {
+            disableProgressButtons(1200);
+
             var [xs, ys] = unzip(vertices);
 
             svg.append('path')
@@ -419,8 +555,8 @@ var fxns = [
                 .delay(400)
                 .style("fill", function() {
                     var cx = d3.select(this).attr("cx");
-                    if (cx < d3.median(xs)) return "#00adff";
-                    else return "#f95968";
+                    if (cx < d3.median(xs)) return color_pairs[0][0];
+                    else return color_pairs[0][1];
                 });
 
             svg.select('.median')
@@ -432,6 +568,8 @@ var fxns = [
     },{ // step 4: show first bridge 
         // recolor all vertices black
         prev: function() { 
+            disableProgressButtons(400);
+
             d3.selectAll("circle")
                 .transition()
                 .duration(400)
@@ -440,6 +578,8 @@ var fxns = [
 
         // draw first bridge 
         next: function() {
+            disableProgressButtons(400);
+
             var [xs, ys] = unzip(vertices);
             var ch = d3.polygonHull(vertices);
             for (var i = 1; i < ch.length; i++) {
@@ -458,6 +598,8 @@ var fxns = [
     },{ // step 5: first random pairing 
         // remove first bridge
         prev: function() { 
+            disableProgressButtons(400);
+
             svg.select('.bridge.actual#a-1')
                 .classed('removed',true)
                 .transition()
@@ -467,6 +609,8 @@ var fxns = [
 
         // randomly pair points
         next: function() {
+            disableProgressButtons(400);
+
             // find random pairings
             pairs = randomlyPairPoints(vertices.slice(0));
             for (var i = 0; i < pairs.length; i++) {
@@ -483,6 +627,8 @@ var fxns = [
     },{ // step 6: median test on first pairing 
         // show first bridge and remove random pairings
         prev: function() { 
+            disableProgressButtons(400);
+
             // delete all other bridges
             svg.selectAll('.bridge.trial')
                 .classed('removed', true)
@@ -493,13 +639,16 @@ var fxns = [
 
         // show median test
         next: function() {
+            disableProgressButtons(1300);
+
             // calc position of median test
-            drawMedianTrialBridge('a-1-1');
+            drawMedianTrialBridge('a-1-1', 500, 800, 0);
 
             // update instructions based on results
             var k = getLineSlope($('.bridge.actual#a-1')[0]);
             var t = getLineSlope($('.bridge.test#a-1-1')[0]);
-            if (t == k) {
+            var e = 0.000005;
+            if (t - e <= k && t + e >= k) {
                 updateInstructions("As we can see, our test edge with slope $k_{median}$ does form a bridge between red and blue points. So we found our bridge edge!");
             } else if (t < k) {
                 updateInstructions("As we can see, our median slope is too shallow so we will have to try again. In order to prune our search, we should get rid of $\\frac{1}{4}$ of our points by ignoring the right endpoints of our shallow lines since they appear to be skewing $k_{median}$. With fewer points, hopefully we'll have better luck!");
@@ -512,7 +661,9 @@ var fxns = [
             pairs_backup['a-1-1'] = pairs.slice(0);
         },
     },{ // step 7: median test on second pairing 
-        prev: function() { 
+        prev: function() {
+            disableProgressButtons(400);
+
             svg.selectAll('.bridge.test')
                 .classed('removed', true)
                 .transition()
@@ -520,6 +671,8 @@ var fxns = [
                 .remove();
         },
         next: function() {
+            disableProgressButtons(3000);
+
             var actual_bridge = $('.bridge.actual#a-1')[0],
                 test_bridge   = $('.bridge.test#a-1-1')[0];
 
@@ -531,34 +684,44 @@ var fxns = [
             }
 
             // defocus extreme vertices and hide trial / test bridges
-            defocusExtremeVertices("a-1-1");
+            defocusExtremeVertices("a-1-1", 0);
             svg.selectAll('.bridge.trial#a-1-1').classed('removed', true);
             svg.selectAll('.bridge.test#a-1-1').classed('removed', true);
 
-            // find new random pairings
-            pairs = randomlyPairPoints(vertices.slice(0));
-            for (var i = 0; i < pairs.length; i++) {
-                svg.append('path')
-                    .classed('bridge', true)
-                    .classed('trial', true)
-                    .attr('id', 'a-1-2')
-                    .attr('d', line([pairs[i][0], pairs[i][1]]) + 'Z')
-                    .style('opacity', 0)
-                    .transition()
-                    .delay(800)
-                    .style('opacity', 1);
-            }
+            setTimeout(function() {
+                vertices = [ ]
+                svg.selectAll('.vertex')
+                    .each(function() {
+                        var p = d3.select(this);
+                        if (!p.classed('removed') && !p.classed('defocused')) vertices.push([p.attr('cx'), p.attr('cy')]);
+                    });
 
-            updateInstructions("");
+                // find new random pairings
+                pairs = randomlyPairPoints(vertices.slice(0));
+                for (var i = 0; i < pairs.length; i++) {
+                    svg.append('path')
+                        .classed('bridge', true)
+                        .classed('trial', true)
+                        .attr('id', 'a-1-2')
+                        .attr('d', line([pairs[i][0], pairs[i][1]]) + 'Z')
+                        .style('opacity', 0)
+                        .transition()
+                        .delay(800)
+                        .style('opacity', 1);
+                }
+
+                updateInstructions("");
+            }, 1);
 
             // calc position of median test
             setTimeout(function() {
-                drawMedianTrialBridge('a-1-2');
+                drawMedianTrialBridge('a-1-2', 500, 800, 0);
 
                 // update instructions based on results
                 var k = getLineSlope($('.bridge.actual#a-1')[0]);
                 var t = getLineSlope($('.bridge.test#a-1-2')[0]);
-                if (t == k) {
+                var e = 0.000005;
+                if (t - e <= k && t + e >= k) {
                     updateInstructions("As we can see, our median slope is a perfect match so we found our bridge!");
                 } else if (t < k) {
                     updateInstructions("Unfortunately, our median slope again isn't quite right, but we're getting closer. Let's prune and try again, this time ignoring the right endpoints of our shallow edges.");
@@ -573,6 +736,8 @@ var fxns = [
         },
     },{ // step 8: median test on third pairing 
         prev: function() {
+            disableProgressButtons(1200);
+
             // remove current iteration of bridges
             svg.selectAll('.bridge.test#a-1-2')
                 .classed('removed', true)
@@ -588,7 +753,8 @@ var fxns = [
             // update instructions to previous step
             var k = getLineSlope($('.bridge.actual#a-1')[0]);
             var t = getLineSlope($('.bridge.test#a-1-1')[0]);
-            if (t == k) {
+            var e = 0.000005;
+            if (t - e <= k && t + e >= k) {
                 updateInstructions("As we can see, our test edge with slope $k_{median}$ does form a bridge between red and blue points. So we found our bridge edge!");
             } else if (t < k) {
                 updateInstructions("As we can see, our median slope is too shallow so we will have to try again. In order to prune our search, we should get rid of $\\frac{1}{4}$ of our points by ignoring the right endpoints of our shallow lines since they appear to be skewing $k_{median}$. With fewer points, hopefully we'll have better luck!");
@@ -608,6 +774,8 @@ var fxns = [
             }, 800);
         },
         next: function() {
+            disableProgressButtons(3000);
+
             var actual_bridge = $('.bridge.actual#a-1')[0],
                 test1_bridge  = $('.bridge.test#a-1-1')[0],
                 test2_bridge  = $('.bridge.test#a-1-2')[0];
@@ -621,34 +789,44 @@ var fxns = [
             }
 
             // defocus extreme vertices and hide trial / test bridges
-            defocusExtremeVertices("a-1-2");
+            defocusExtremeVertices("a-1-2", 0);
             svg.selectAll('.bridge.trial#a-1-2').classed('removed', true);
             svg.selectAll('.bridge.test#a-1-2').classed('removed', true);
 
-            // find new random pairings
-            pairs = randomlyPairPoints(vertices.slice(0));
-            for (var i = 0; i < pairs.length; i++) {
-                svg.append('path')
-                    .classed('bridge', true)
-                    .classed('trial', true)
-                    .attr('id', 'a-1-3')
-                    .attr('d', line([pairs[i][0], pairs[i][1]]) + 'Z')
-                    .style('opacity', 0)
-                    .transition()
-                    .delay(800)
-                    .style('opacity', 1);
-            }
+            setTimeout(function() {
+                vertices = [ ]
+                svg.selectAll('.vertex')
+                    .each(function() {
+                        var p = d3.select(this);
+                        if (!p.classed('removed') && !p.classed('defocused')) vertices.push([p.attr('cx'), p.attr('cy')]);
+                    });
 
-            updateInstructions("");
+                // find new random pairings
+                pairs = randomlyPairPoints(vertices.slice(0));
+                for (var i = 0; i < pairs.length; i++) {
+                    svg.append('path')
+                        .classed('bridge', true)
+                        .classed('trial', true)
+                        .attr('id', 'a-1-3')
+                        .attr('d', line([pairs[i][0], pairs[i][1]]) + 'Z')
+                        .style('opacity', 0)
+                        .transition()
+                        .delay(800)
+                        .style('opacity', 1);
+                }
+
+                updateInstructions("");
+            }, 1);
 
             // calc position of median test
             setTimeout(function() {
-                drawMedianTrialBridge('a-1-3');
+                drawMedianTrialBridge('a-1-3', 500, 800, 0);
 
                 // update instructions based on results
                 var k = getLineSlope($('.bridge.actual#a-1')[0]);
                 var t = getLineSlope($('.bridge.test#a-1-3')[0]);
-                if (t == k) {
+                var e = 0.000005;
+                if (t - e <= k && t + e >= k) {
                     updateInstructions("Success! Our median slope is a perfect match so we found our bridge!");
                 } else {
                     updateInstructions("Unfortunately, this recursive process can take a number of iterations. However, you can see that we will ignore more and more points until we are able to find $k$, likely when we just have two points left. Because it can take awhile, let's skip ahead to where we actually find our bridge edge.");
@@ -657,6 +835,8 @@ var fxns = [
         },
     },{ // step 9: skip to final match 
         prev: function() { 
+            disableProgressButtons(1200);
+
             // remove current iteration of bridges
             svg.selectAll('.bridge.test#a-1-3')
                 .classed('removed', true)
@@ -672,7 +852,8 @@ var fxns = [
             // update instructions based on results
             var k = getLineSlope($('.bridge.actual#a-1')[0]);
             var t = getLineSlope($('.bridge.test#a-1-2')[0]);
-            if (t == k) {
+            var e = 0.000005;
+            if (t - e <= k && t + e >= k) {
                 updateInstructions("Success! Our median slope is a perfect match so we found our bridge!");
             } else if (t < k) {
                 updateInstructions("Unfortunately, our median slope again isn't quite right, but we're getting closer. Let's prune and try again, this time ignoring the right endpoints of our shallow edges.");
@@ -692,6 +873,8 @@ var fxns = [
             }, 800);
         },
         next: function() {
+            disableProgressButtons(400);
+
             vertices = vertices_backup['a-1-1'];
 
             svg.selectAll('.vertex')
@@ -704,16 +887,15 @@ var fxns = [
             svg.selectAll('.bridge.test').classed('removed', true);
             svg.selectAll('.bridge.actual').classed('found', true);
 
-            // remove ability to step back (gets confusing)
-            $('.prev-button').addClass('disabled');
+            // remove ability to step back (it gets confusing)
+            setTimeout(function() { $('.prev-button').addClass('disabled'); }, 450);
         },
-    },{ // step 10: 
+    },{ // step 10: draw first bounding poly 
         prev: function() { 
             console.log('should not be triggered....');
         },
-        next: function() { 
-            // re-enable previous button
-            $('.prev-button').removeClass('disabled');
+        next: function() {
+            disableProgressButtons(400);
 
             // find x_min and x_max
             var [xs, ys] = unzip(vertices),
@@ -742,9 +924,9 @@ var fxns = [
                 .transition()
                 .style('opacity', 1);
         },
-    },{ // step 11:
+    },{ // step 11: remove interior poly points and color 
         prev: function() {
-            // disenable previous button
+            // disable previous button and remove poly
             $('.prev-button').addClass('disabled');
             svg.select('.bounding-poly#a-1')
                 .classed('removed', true)
@@ -753,6 +935,8 @@ var fxns = [
                 .remove()
         },
         next: function() {
+            disableProgressButtons(1200);
+
             // find x_min and x_max
             var [xs, ys] = unzip(vertices),
                 x_max    = [ ],
@@ -796,43 +980,50 @@ var fxns = [
                 svg.selectAll('.vertex')
                     .style("fill", function() {
                         var p = d3.select(this);
-                        if (parseFloat(p.attr("cx")) < bbox.x + bbox.width / 2) return "#00adff";
-                        else return "#f95968";
+                        if (parseFloat(p.attr("cx")) < bbox.x + bbox.width / 2) return color_pairs[0][0];
+                        else return color_pairs[0][1];
                     });
             }, 800);
 
 
         },
-    },{ // step 12:
+    },{ // step 12: focus on subproblem 
         prev: function() {
+            disableProgressButtons(400);
             svg.selectAll('.vertex#a-1-bounding').classed('removed', false);
             svg.selectAll('.bounding-poly#a-1').classed('removed', false);
             svg.selectAll('.vertex').style('fill', 'black');
         },
         next: function() {
+            disableProgressButtons(400);
+
             // store back up
             vertices_backup['a-1'] = vertices.slice(0);
             vertices = [ ];
 
+            // calculate center line so we can partition points 
             var bbox = $('.bridge.actual#a-1')[0].getBBox();
+            var x_c  = bbox.x + bbox.width / 2;
 
+            // attempt to focus on blue vertices
             svg.selectAll('.vertex')
                 .each(function() { 
                     var p = d3.select(this);
                     var coor = [parseFloat(p.attr("cx")), parseFloat(p.attr("cy"))];
-                    if (!p.classed('removed') && parseFloat(p.attr("cx")) < bbox.x + bbox.width / 2) {
+                    if (!p.classed('removed') && parseFloat(p.attr("cx")) < x_c) {
                         vertices.push(coor);
                     } else if (!p.classed('removed')) {
                         p.classed('defocused', true);
                     }
                 });
 
-            if (vertices.length <= 1) {
+            // if not blue vertices left, focus on red vertices
+            if (vertices.length <= 2) {
                 svg.selectAll('.vertex')
                     .each(function() { 
                         var p = d3.select(this);
                         var coor = [parseFloat(p.attr("cx")), parseFloat(p.attr("cy"))];
-                        if (!p.classed('removed') && parseFloat(p.attr("cx")) > bbox.x + bbox.width / 2) {
+                        if (!p.classed('removed') && parseFloat(p.attr("cx")) > x_c) {
                             vertices.push(coor);
                             p.classed('defocused', false);
                         } else if (!p.classed('removed')) {
@@ -840,21 +1031,117 @@ var fxns = [
                         }
                     });
             }
+
+            // defocus found bridge
+            svg.select('.bridge.found#a-1').classed('defocused', true);
+
+            centerPoints(vertices);
         },
     },{ // step ...:
         prev: function() {
+            disableProgressButtons(400);
+
             // revert to back up
             vertices = vertices_backup['a-1'].slice(0);
 
-            svg.selectAll('.vertex')
-                .classed('defocused', false);
+            // refocus bridge and all vertices
+            svg.select('.bridge.found#a-1').classed('defocused', false);
+            svg.selectAll('.vertex').classed('defocused', false);
         },
-        next: function() { },
+        next: function() {
+            disableProgressButtons(1200);
+
+            // find median of smaller set
+            // and color smaller set accordingly
+            var [xs, ys] = unzip(vertices);
+
+            svg.append('path')
+                .classed('median', true)
+                .attr('d', line([[d3.median(xs), 15], [d3.median(xs), height - 15]]) + 'Z')
+                .style('opacity', 0)
+                .transition()
+                .style('opacity', 1);
+
+            d3.selectAll("circle")
+                .filter(function() { return !d3.select(this).classed('defocused'); })
+                .transition()
+                .duration(400)
+                .delay(400)
+                .style("fill", function() {
+                    var cx = d3.select(this).attr("cx");
+                    if (cx < d3.median(xs)) return color_pairs[1][0];
+                    else return color_pairs[1][1];
+                });
+
+            svg.select('.median')
+                .transition()
+                .delay(800)
+                .style('opacity', 0)
+                .remove();
+        },
+    },{ // step ...:
+        prev: function() {
+            disableProgressButtons(400);
+
+            var bbox = $('.bridge.actual#a-1')[0].getBBox();
+            var x_c  = bbox.x + bbox.width / 2;
+
+            d3.selectAll("circle")
+                .filter(function() { return !d3.select(this).classed('defocused'); })
+                .transition()
+                .duration(400)
+                .style("fill", function() {
+                    if (d3.select(this).attr("cx") < x_c) return color_pairs[0][0];
+                    else return color_pairs[0][1];
+                });
+        },
+        next: function() {
+            $('.next-button').addClass('disabled');
+            $('.prev-button').addClass('disabled');
+
+            var bridgeNotFound = true;
+            animateBridgeFinding(vertices, 'b-1');
+
+            // update text when bridge is found
+            var checkForBridge = setInterval(function() {
+                if ($('.bridge.found#b-1').length > 0) {
+                    clearInterval(checkForBridge);
+                    updateInstructions("So using the same process, we were again able to quickly find a bridge edge. Now we have two of our convex hull edges! Like before, we can continue the recursion down until we've gotten all of the convex hull edges on this side.");
+
+                    $('.next-button').removeClass('disabled');
+                    $('.prev-button').removeClass('disabled');
+                }
+            }, 500);
+        },
+    },{ // step ...:
+        prev: function() {
+
+        },
+        next: function() {
+
+        }
+    },{ // step ...:
+        prev: function() {
+
+        },
+        next: function() {
+
+        }
+    },{ // step ...:
+        prev: function() {
+
+        },
+        next: function() {
+
+        }
     }
 ];
 
 // enable forward and back step buttons
 $(document).ready(function() {
+    // initialize instructions
+    updateInstructions(instructions[0]);
+
     $('.next-button').click(function() {
         console.log('fxn step: ', fxn_i);
 
@@ -884,5 +1171,20 @@ $(document).ready(function() {
     $(document).keyup(function(e) {
         if      (e.keyCode == 39) $(".next-button").trigger("click");
         else if (e.keyCode == 37) $(".prev-button").trigger("click");
+        else if (e.keyCode == 32 && fxn_i == 0) {
+            for (var i = 0; i < 5; i++) {
+                // generate a random point
+                var p_x = Math.random() * (width - 50) + 25;
+                var p_y = Math.random() * (height - 50) + 25;
+
+                // add it to vertices
+                vertices.push([p_x, p_y]);
+                redrawVerticies();
+
+                // check if at least 5 edges in convex hull
+                var ch = d3.polygonHull(vertices);
+                if (ch && ch.length >= 5) $('.next-button').removeClass('disabled');
+            }
+        }
     });
 });

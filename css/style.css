@@ -68,6 +68,10 @@
     stroke-dasharray: none;
 }
 
+.bridge.defocused {
+    opacity: 0.15 !important;
+}
+
 .bridge.trial {
 
 }
@@ -76,7 +80,18 @@
     stroke: #ff00ff;
 }
 
-.bridge.removed, .median.removed {
+#hull-divider {
+    stroke: grey;
+    stroke-width: 0.5;
+    fill: none;
+    opacity: 1;
+    -webkit-transition: opacity 0.4s ease;
+    -moz-transition: opacity 0.4s ease;
+    -o-transition: opacity 0.4s ease;
+    transition: opacity 0.4s ease; 
+}
+
+.bridge.removed, .median.removed, #hull-divider.removed {
     opacity: 0 !important;
 }
 
