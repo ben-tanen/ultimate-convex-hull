@@ -71,9 +71,12 @@ function redrawVerticies() {
         .data(vertices).enter()
         .append("circle")
         .attr("class", "vertex")
-        .attr("r", 5)
+        .attr("r", 0)
         .attr("cx", function(d) { return d[0] })
-        .attr("cy", function(d) { return d[1] });
+        .attr("cy", function(d) { return d[1] })
+        .transition()
+        .duration(100)
+        .attr("r", 5);
 }
 
 function centerPoints(points) {
@@ -219,8 +222,8 @@ function drawMedianTrialBridge(id) {
         .transition()
         .style('opacity', 1)
         .transition()
-        .delay(400)
-        .duration(1500)
+        .delay(800)
+        .duration(1000)
         .attr('transform', 'translate(0,' + offset_y + ')');
 
 }
@@ -301,6 +304,9 @@ var fxns = [
                 .style('opacity', 0)
                 .transition()
                 .style('opacity', 1);
+
+            // disable pointer cursor
+            $('.svg-container').css('cursor', 'auto')
         },       
     },{ // step 2: focus on upper hull 
         // delete hull divider
@@ -310,6 +316,9 @@ var fxns = [
                 .transition()
                 .delay(400)
                 .remove();  
+
+            // enable pointer cursor
+            $('.svg-container').css('cursor', 'pointer')
         },
 
         // remove lower hull and refocus 
