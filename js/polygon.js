@@ -93,7 +93,8 @@ function centerPoints(points) {
     d3.selectAll("circle")
         .each(function(d) {
             var p = d3.select(this);
-            p.transition(400)
+            p.transition()
+                .duration(400)
                 .attr("cx", parseFloat(p.attr("cx")) + translate_x)
                 .attr("cy", parseFloat(p.attr("cy")) + translate_y);
 
@@ -117,7 +118,8 @@ function scalePoints(points, scale) {
             var dx = x_c - parseFloat(p.attr("cx")),
                 dy = y_c - parseFloat(p.attr("cy"));
 
-            p.transition(400)
+            p.transition()
+                .duration(400)
                 .attr("cx", x_c - dx * scale)
                 .attr("cy", y_c - dy * scale);
 
@@ -178,12 +180,34 @@ function drawMedianTrialBridge(id) {
         ks.push(getLineSlope(trial_bridges[i]));
     }
 
-    var bbox   = actual_bridge.getBBox();
+    // calculate median slope (forced to be actual value, not average of two)
+    var k_med = (ks.length % 2 == 0 ? ks.sort()[Math.ceil(ks.length / 2)] : d3.median(ks));
+
+    // find edge with same slope
+    for (var i = 0; i < trial_bridges.length; i++) {
+        if (getLineSlope(trial_bridges[i]) == k_med) med_bridge = trial_bridges[i];
+    }
+
+    // compute center of median bridge
+    var bbox   = med_bridge.getBBox();
     var bbox_c = [bbox.x + bbox.width / 2, bbox.y + bbox.height / 2];
 
-    // center median line
-    var l_min = [bbox_c[0] - (bbox.width / 2), bbox_c[1] + (bbox.width / 2) * d3.median(ks)],
-        l_max = [bbox_c[0] + (bbox.width / 2), bbox_c[1] - (bbox.width / 2) * d3.median(ks)];
+    // extend median bridge
+    var l_min = [bbox_c[0] - width, bbox_c[1] + width * k_med],
+        l_max = [bbox_c[0] + width, bbox_c[1] - width * k_med];
+
+    // compute offset to animate test bridge
+    var a_bbox = actual_bridge.getBBox()
+    if (k_med >= k) {
+        var actual_x = a_bbox.x;
+        var actual_y = (getLineSlope(actual_bridge) >= 0 ? a_bbox.y + a_bbox.height : a_bbox.y);
+    } else {
+        var actual_x = a_bbox.x + a_bbox.width;
+        var actual_y = (getLineSlope(actual_bridge) >= 0 ? a_bbox.y : a_bbox.y + a_bbox.height);
+    }
+    var med_x    = bbox_c[0] + (actual_x - bbox_c[0]);
+    var med_y    = bbox_c[1] - (actual_x - bbox_c[0]) * k_med;
+    var offset_y = actual_y - med_y;
 
     // draw median test
     svg.append('path')
@@ -192,8 +216,13 @@ function drawMedianTrialBridge(id) {
         .attr('id', id)
         .attr('d', line([l_min, l_max]) + 'Z')
         .style('opacity', 0)
-        .transition(400)
-        .style('opacity', 1);
+        .transition()
+        .style('opacity', 1)
+        .transition()
+        .delay(400)
+        .duration(1500)
+        .attr('transform', 'translate(0,' + offset_y + ')');
+
 }
 
 function defocusExtremeVertices(id) {
@@ -270,7 +299,7 @@ var fxns = [
                 .attr('id', 'hull-divider')
                 .attr('d', line([x_min, x_max]) + 'Z')
                 .style('opacity', 0)
-                .transition(400)
+                .transition()
                 .style('opacity', 1);
         },       
     },{ // step 2: focus on upper hull 
@@ -372,11 +401,12 @@ var fxns = [
                 .classed('median', true)
                 .attr('d', line([[d3.median(xs), 15], [d3.median(xs), height - 15]]) + 'Z')
                 .style('opacity', 0)
-                .transition(400)
+                .transition()
                 .style('opacity', 1);
 
             d3.selectAll("circle")
-                .transition(400)
+                .transition()
+                .duration(400)
                 .delay(400)
                 .style("fill", function() {
                     var cx = d3.select(this).attr("cx");
@@ -385,7 +415,7 @@ var fxns = [
                 });
 
             svg.select('.median')
-                .transition(400)
+                .transition()
                 .delay(800)
                 .style('opacity', 0)
                 .remove(); 
@@ -394,7 +424,8 @@ var fxns = [
         // recolor all vertices black
         prev: function() { 
             d3.selectAll("circle")
-                .transition(400)
+                .transition()
+                .duration(400)
                 .style("fill", "black");
         },
 
@@ -410,7 +441,7 @@ var fxns = [
                         .attr('id', 'a-1')
                         .attr('d', line([ch[i], ch[i-1]]) + 'Z')
                         .style('opacity', 0)
-                        .transition(400)
+                        .transition()
                         .style('opacity', 1);
                 }
             }
@@ -436,7 +467,7 @@ var fxns = [
                     .attr('id', 'a-1-1')
                     .attr('d', line([pairs[i][0], pairs[i][1]]) + 'Z')
                     .style('opacity', 0)
-                    .transition(400)
+                    .transition()
                     .style('opacity', 1);
             }
         }
@@ -504,7 +535,7 @@ var fxns = [
                     .attr('id', 'a-1-2')
                     .attr('d', line([pairs[i][0], pairs[i][1]]) + 'Z')
                     .style('opacity', 0)
-                    .transition(400)
+                    .transition()
                     .delay(800)
                     .style('opacity', 1);
             }
@@ -594,7 +625,7 @@ var fxns = [
                     .attr('id', 'a-1-3')
                     .attr('d', line([pairs[i][0], pairs[i][1]]) + 'Z')
                     .style('opacity', 0)
-                    .transition(400)
+                    .transition()
                     .delay(800)
                     .style('opacity', 1);
             }
@@ -656,7 +687,8 @@ var fxns = [
 
             svg.selectAll('.vertex')
                 .classed('defocused', false)
-                .transition(400)
+                .transition()
+                .duration(400)
                 .style('fill', 'black');
 
             svg.selectAll('.bridge.trial').classed('removed', true);
@@ -698,7 +730,7 @@ var fxns = [
                 .style('stroke', 'steelblue')
                 .style('fill', 'none')
                 .style('opacity', 0)
-                .transition(400)
+                .transition()
                 .style('opacity', 1);
         },
     },{ // step 11:
