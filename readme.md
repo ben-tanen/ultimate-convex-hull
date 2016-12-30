@@ -10,7 +10,7 @@ This was done as a final project for Tufts' COMP-163: Computational Geometry (Fa
 
 - [x] Fix scaling / centering
 - [x] Add next and previous step buttons
+- [x] Disable "next" and "previous" buttons when animating for all steps
+- [x] Animate median testing line sweep
+- [x] Add steps for rest of algorithm
 - [ ] Add collapsable text introduction / about
-- [ ] Disable "next" and "previous" buttons when animating for all steps
-- [ ] Animate median testing line sweep
-- [ ] Add steps for rest of algorithm

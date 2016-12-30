@@ -33,7 +33,8 @@ var instructions = [
     "With a fraction of the original points, we can again partition our subproblem and arbitrarily pair our points in a search for for our next bridge. So first let's partition them, this time into orange and green sets.",
     "Now that we have our orange and green sets divided, let's find a bridge edge between the two. Since we're using the same process as before, let's fast forward through it.",
     "",
-    "testing a",
+    "",
+    ""
 
 ];
 
@@ -57,6 +58,10 @@ function unzip(points) {
     }
 
     return [xs,ys];
+}
+
+function samePoint(p1, p2) {
+    return p1[0] == p2[0] && p1[1] == p2[1];
 }
 
 function drawPath(points) {
@@ -335,26 +340,17 @@ function animateBridgeFinding_recursive(vertices, id, trial) {
                 .classed('defocused', false);
 
             // remove all test and trial bridges
-            svg.selectAll('.bridge.test')
+            svg.selectAll('.bridge')
                 .filter(function() {
                     var b = d3.select(this);
-                    return b.attr('id').includes(id);
+                    return (b.classed('test') || b.classed('trial')) && b.attr('id').includes(id);
                 })
+                .classed('removed', true)
                 .transition()
                 .delay(400)
-                .remove()
-
-            svg.selectAll('.bridge.trial')
-                .filter(function() {
-                    var b = d3.select(this);
-                    return b.attr('id').includes(id);
-                })
-                .transition()
-                .delay(400)
-                .remove()
+                .remove();
         }
     }, trial_delay);
-
 }
 
 function animateBridgeFinding(vertices, id) {
@@ -378,6 +374,54 @@ function animateBridgeFinding(vertices, id) {
     animateBridgeFinding_recursive(vertices, id, 1);    
 }
 
+function animateRemainingRecursion(vertices) {
+    if (vertices.length == 2) {
+        svg.append('path')
+            .classed('bridge', true)
+            .classed('actual', true)
+            .classed('found', true)
+            .attr('id', 'remaining')
+            .attr('d', line(vertices) + 'Z')
+            .style('opacity', 0)
+            .transition()
+            .delay(400)
+            .style('opacity', 1);
+        return;
+    }
+
+    var [xs,ys] = unzip(vertices);
+    var ch = d3.polygonHull(vertices);
+    var p_max = [0, 0],
+        p_min = [width, 0];
+    for (var i = 0; i < vertices.length; i++) {
+        if (vertices[i][0] > p_max[0]) p_max = vertices[i];
+        if (vertices[i][0] < p_min[0]) p_min = vertices[i];
+    }
+
+    var ixs = d3.shuffle(Array.apply(null, {length: ch.length}).map(Number.call, Number));
+    for (var i = 0; i < ch.length; i++) {
+        var ix1 = ixs[i];
+        var ix2 = (ix1 == 0 ? ch.length - 1 : ix1 - 1)
+
+        // don't draw lower hull edge
+        if ((samePoint(ch[ix1], p_max) && samePoint(ch[ix2], p_min)) || 
+            (samePoint(ch[ix1], p_min) && samePoint(ch[ix2], p_max))) {
+            continue;
+        }
+
+        svg.append('path')
+            .classed('bridge', true)
+            .classed('actual', true)
+            .classed('found', true)
+            .attr('id', 'remaining')
+            .attr('d', line([ch[ix1], ch[ix2]]) + 'Z')
+            .style('opacity', 0)
+            .transition()
+            .delay((i - 1) * 400)
+            .style('opacity', 1); 
+    }
+}
+
 /*************/
 /* BUILD SVG */
 /*************/
@@ -392,7 +436,7 @@ var svg = d3.select(".svg-container").append("svg")
 
             // check if at least 5 edges in convex hull
             var ch = d3.polygonHull(vertices);
-            if (ch && ch.length >= 5) $('.next-button').removeClass('disabled');
+            if (ch && ch.length >= 8) $('.next-button').removeClass('disabled');
         }
     });
 
@@ -954,10 +998,10 @@ var fxns = [
                 v_right = [bbox.x + bbox.width, bbox.y + (slope >= 0 ? 0 : bbox.height)];
 
             // add buffer to polygon points
-            v_left[0]  = v_left[0] + 1;
-            v_right[0] = v_right[0] - 1;
-            x_min[0]   = x_min[0] + 1;
-            x_max[0]   = x_max[0] - 1;
+            v_left[0]  = v_left[0] + 0.1;
+            v_right[0] = v_right[0] - 0.1;
+            x_min[0]   = x_min[0] + 0.1;
+            x_max[0]   = x_max[0] - 0.1;
 
             svg.selectAll('.vertex')
                 .each(function(d) {
@@ -1013,31 +1057,33 @@ var fxns = [
                     if (!p.classed('removed') && parseFloat(p.attr("cx")) < x_c) {
                         vertices.push(coor);
                     } else if (!p.classed('removed')) {
-                        p.classed('defocused', true);
+                        p.classed('defocused', true)
+                            .attr('id', 'c-1')
                     }
                 });
 
-            // if not blue vertices left, focus on red vertices
-            if (vertices.length <= 2) {
+            // if fewer blue vertices left, focus on red vertices
+            if (vertices.length < svg.selectAll('.vertex').filter(function() { return !d3.select(this).classed('removed'); }).size() / 2) {
+                vertices = [ ];
                 svg.selectAll('.vertex')
                     .each(function() { 
                         var p = d3.select(this);
                         var coor = [parseFloat(p.attr("cx")), parseFloat(p.attr("cy"))];
                         if (!p.classed('removed') && parseFloat(p.attr("cx")) > x_c) {
                             vertices.push(coor);
-                            p.classed('defocused', false);
+                            p.classed('defocused', false)
+                                .attr('id', null);
                         } else if (!p.classed('removed')) {
-                            p.classed('defocused', true);
+                            p.classed('defocused', true)
+                                .attr('id', 'c-1');
                         }
                     });
             }
 
             // defocus found bridge
             svg.select('.bridge.found#a-1').classed('defocused', true);
-
-            centerPoints(vertices);
         },
-    },{ // step ...:
+    },{ // step 13: second coloring
         prev: function() {
             disableProgressButtons(400);
 
@@ -1079,7 +1125,7 @@ var fxns = [
                 .style('opacity', 0)
                 .remove();
         },
-    },{ // step ...:
+    },{ // step 14: second bridge (first animated one)
         prev: function() {
             disableProgressButtons(400);
 
@@ -1099,6 +1145,10 @@ var fxns = [
             $('.next-button').addClass('disabled');
             $('.prev-button').addClass('disabled');
 
+            // store backup
+            vertices_backup['b-1'] = vertices.slice(0);
+
+            // find second bridge
             var bridgeNotFound = true;
             animateBridgeFinding(vertices, 'b-1');
 
@@ -1108,23 +1158,123 @@ var fxns = [
                     clearInterval(checkForBridge);
                     updateInstructions("So using the same process, we were again able to quickly find a bridge edge. Now we have two of our convex hull edges! Like before, we can continue the recursion down until we've gotten all of the convex hull edges on this side.");
 
+                    vertices = vertices_backup['b-1'];
+
                     $('.next-button').removeClass('disabled');
-                    $('.prev-button').removeClass('disabled');
                 }
             }, 500);
         },
     },{ // step ...:
         prev: function() {
-
+            console.log('should not be triggered....');
         },
         next: function() {
+            // for rest of vertices on side, "compute" CH edges
+            animateRemainingRecursion(vertices);
 
+            // focus on other side
+            var ch    = d3.polygonHull(vertices);
+            var delay = ch.length * 400;
+            setTimeout(function() {
+                svg.selectAll('.vertex').classed('defocused', false);
+                svg.selectAll('.bridge.found').classed('defocused', false);
+                svg.selectAll('.bridge.found#b-1').classed('removed', true);
+                updateInstructions("Through recursing on one of our smaller sets, we've found all of the edges on that side. Thus we can see that by recursing on the <i>other</i> side, we will get the remaining edges in our convex hull!");
+
+            }, delay);
+
+            // go back to original colors
+            var [xs,ys] = unzip(vertices_backup['a-1'].slice(0));
+            d3.selectAll("circle")
+                .transition()
+                .duration(400)
+                .delay(delay)
+                .style("fill", function() {
+                    var cx = d3.select(this).attr("cx");
+                    if (cx < d3.median(xs)) return color_pairs[0][0];
+                    else return color_pairs[0][1];
+                });
         }
     },{ // step ...:
         prev: function() {
+            // re-update instructions
+            updateInstructions("So using the same process, we were again able to quickly find a bridge edge. Now we have two of our convex hull edges! Like before, we can continue the recursion down until we've gotten all of the convex hull edges on this side.");
+
+            // remove all "remaining" edges added
+            svg.selectAll('.bridge#remaining')
+                .classed('removed', true)
+                .transition()
+                .delay(400)
+                .remove();
+
+            // defocus other side
+            svg.selectAll('.bridge#a-1').classed('defocused', true);
+            
+            // store back up
+            vertices_backup['b-1'] = vertices.slice(0);
+            vertices = [ ];
+
+            // calculate center line so we can partition points 
+            var bbox = $('.bridge.actual#a-1')[0].getBBox();
+            var x_c  = bbox.x + bbox.width / 2;
+
+            // attempt to focus on blue vertices
+            svg.selectAll('.vertex')
+                .each(function() { 
+                    var p = d3.select(this);
+                    var coor = [parseFloat(p.attr("cx")), parseFloat(p.attr("cy"))];
+                    if (!p.classed('removed') && parseFloat(p.attr("cx")) < x_c) {
+                        vertices.push(coor);
+                    } else if (!p.classed('removed')) {
+                        p.classed('defocused', true)
+                            .attr('id', 'c-1')
+                    }
+                });
+
+            // if fewer blue vertices left, focus on red vertices
+            if (vertices.length < svg.selectAll('.vertex').filter(function() { return !d3.select(this).classed('removed'); }).size() / 2) {
+                vertices = [ ];
+                svg.selectAll('.vertex')
+                    .each(function() { 
+                        var p = d3.select(this);
+                        var coor = [parseFloat(p.attr("cx")), parseFloat(p.attr("cy"))];
+                        if (!p.classed('removed') && parseFloat(p.attr("cx")) > x_c) {
+                            vertices.push(coor);
+                            p.classed('defocused', false).attr('id', null);
+                        } else if (!p.classed('removed')) {
+                            p.classed('defocused', true)
+                                .attr('id', 'c-1');
+                        }
+                    });
+            }
+
 
         },
         next: function() {
+            // get list of vertices for uncomputed side
+            var other_vertices = [ ];
+            svg.selectAll('#c-1')
+                .each(function() {
+                    var p = d3.select(this);
+                    other_vertices.push([parseFloat(p.attr('cx')), parseFloat(p.attr('cy'))]);
+                });
+
+            // for rest of vertices on OTHER side, "compute" CH edges       
+            animateRemainingRecursion(other_vertices);
+
+            // focus on other side
+            if (other_vertices.length > 2) {
+                var ch    = d3.polygonHull(other_vertices);
+                var delay = ch.length * 400;
+            } else {
+                var delay = 400
+            }
+
+            setTimeout(function() {
+                svg.selectAll('.vertex').classed('defocused', false);
+                svg.selectAll('.bridge.found').classed('defocused', false);
+                updateInstructions("Great, we're done! We found our entire upper hull in $O(n \\log n)$ time. Now that we understand the algorithm, we can apply it to the lower hull and then merge it with our upper hull for the full convex hull of our original $n$ points. <br /> Feel free to refresh the page and try the algorithm out on a different set of points! Also feel free to explore more information on the algorithm via the material both above and below.");
+            }, delay);
 
         }
     },{ // step ...:
