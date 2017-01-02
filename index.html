@@ -30,11 +30,19 @@
 </head>
 <body>
     <div class="header">
-        <h1>Learn the Ultimate Convex Hull Algorithm</h1>
-        <h3>COMP-163: Computational Geometry</h3>
+        <h1>Visualizing the Ultimate Convex Hull Algorithm</h1>
+        <h3>Ben Tanen, COMP-163: Computational Geometry</h3>
     </div>
 
-    <div class="about">
+    <div class="about v1">
+        <div class="sub_about">
+            <img class="hide info-btn" src="img/hide.png" /><h3>About the Algorithm</h3>
+            <p class="sub_info hidden">The Kirkpatrick–Seidel algorithm, also known as "the Ultimate Planar Convex Hull Algorithm (?)," is an algorithm for computing the convex hull of a set of points in the plane. It is a particularly notable because it can compute the convex hull of $n$ points in $O(n \log h)$ time, $h$ is the number of points in the hull.</p>
+
+            <p class="sub_info hidden">Unlike other comparable $O(n \log h)$ algorithms which combine and tweak other convex hull algorithms, the Ultimate Convex Hull Algorithm is a divide-and-conquer algorithm that then uses <i>"bridges"</i> to merge our problem.</p>
+
+            <p class="sub_info hidden">If you're interested in exploring the algorithm, add some points to the canvas below and see how it works!</p>
+        </div>
     </div>
 
     <div class="main">
@@ -53,12 +61,38 @@
             <div class="next-button disabled">
                 <p>Next<br />Step</p>
             </div>
+        </div>
     </div>
 
-    <div class="footer">
+    <div class="about v2">
+        <div class="sub_about">
+            <img class="show info-btn" src="img/show.png" /><h3>Reference Material</h3>
+            <p class="sub_info">If you're looking for some material to review the terminology and concepts of algorithms and computational geometry, check out the following resources:</p>
+            <ul class="sub_info" style="padding-left: 18px;">
+                <li><a href="https://rob-bell.net/2009/06/a-beginners-guide-to-big-o-notation/">Big-O Notation and Time Complexity</a></li>
+                <li><a href="http://mathworld.wolfram.com/ConvexHull.html">Basics of Convex Hull</a></li>
+                <li><a href="https://www.youtube.com/watch?v=ZnTiWcIznEQ">A Few Simpler CH Algorithms</a></li>
+            </ul>
+            <br />
+            <p class="sub_info">If you're looking for further reading on Kirkpatrick–Seidel's algorithm (or other comparable methods), check out these links:</p>
+            <ul class="sub_info" style="padding-left: 18px;">
+                <li><a href='https://en.wikipedia.org/wiki/Kirkpatrick%E2%80%93Seidel_algorithm'>Kirkpatrick–Seidel Algorithm on Wikipedia</a></li>
+                <li><a href='https://ecommons.cornell.edu/handle/1813/6417'>Kirkpatrick and Seidel's original paper</a></li>
+                <li><a href='https://pdfs.semanticscholar.org/df44/e1cacaf8ef11db7c84042d1bebbd68a1d39d.pdf'>An extension of the Kirkpatrick-Seidel algorithm in <i>O(n)</i> time</a> (note: not verified)</li>
+                <li><a href='https://en.wikipedia.org/wiki/Chan's_algorithm'>Chan's Algorithm</a> (a comparable algorithm)</li>
+            </ul>
+        </div>
+
+        <!--
+        <div class="sub_about">
+            <img class="hide info-btn" src="img/hide.png" /><h3>Understanding the Complexity of $O(n \log h)$</h3>
+            <p class="sub_info">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Vitae quas corporis quidem delectus magni eos culpa exercitationem distinctio id possimus odio excepturi obcaecati corrupti voluptatibus, necessitatibus eaque, aut tempore. Voluptatem.</p>
+        </div>
+        -->
     </div>
 
     <!-- custom js files -->
     <script src="js/polygon.js"></script>
+    <script src="js/main.js"></script>
 </body>
 </html>

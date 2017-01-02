@@ -2,7 +2,7 @@
 /* INIT VARIABLES */
 /******************/
 
-var width  = $('.main').width() - 2,
+var width  = $(window).width() * (3 / 4) - 15,
     height = 400;
 
 var vertices = [ ],
@@ -18,13 +18,15 @@ var line = d3.line()
 var fxn_i = 0;
 
 var instructions = [
-    "Click on the canvas to add vertices - we'll be computing the convex hull of those points so add a few! You can also hit the spacebar to add random points.",
+    "Click on the canvas to add vertices - we'll be computing the convex hull of those points so add a few! You can also hit the <i>'p'</i> to add random points.",
     "This algorithm works by computing the upper or lower hulls of our points individually. If we want the full convex hull, we can just join the upper and lower hulls. For now, let's focus on the upper half of our points (i.e., those above the segment between $x_{min}$ and $x_{max}$).",
     "Now that we are working with just the upper points, we can begin computing the upper hull. This is a divide and conquer algorithm so we will first <b>divide</b> our points into two sets using the median $x$ value.",
     "With our points now divided into two sets, we want to find a <i>bridge</i> edge that will connect one hull point from our left set of points to another hull point in our right set of points. This bridge edge will be part of our convex hull and it will <b>merge</b> our divided sets.",
     "We can see this is the bridge edge that we are looking for, but how can we calculate this edge deterministically in $O(n)$ time? If we say our ideal edge has a slope of $k$, we can try out different values for $k^*$ and see if these form a bridge edge. To get some test values for $k^*$, let's try drawing random edges between our points and see what we get.",
     "Now that we have a random pairing, let's see if the median slope of our pairings might get us our ideal slope $k$. To test, we can make a line with slope $k_{median}$ and sweep it vertically. Based on this sweep, we can determine if we've found $k$.",
+    "This is our median slope line, which we can find in $O(n)$ time. Now that we have our line with $k_{median}$, let's try sweeping it and see what points we hit at the end of our sweep. If we end our sweep by connecting a red point to a blue point, we've found a bridge! Otherwise, we'll have to rework our problem a bit.",
     "median trial 1 - you should not be seeing this... if you are, please let Ben know",
+    "These are the vertices we will ignore. By ignoring approximately 25% of our points, we will hopefully have better luck finding our bridge. Let's see if it works!",
     "median trial 2 - you should not be seeing this... if you are, please let Ben know",
     "median trial 3 - you should not be seeing this... if you are, please let Ben know",
     "So we were able to find our bridge edge and we can see that this is the first edge in the convex hull. So how do we find the rest? Well, before moving forward, let's get rid of some vertices that we know won't be on the convex hull.",
@@ -195,6 +197,39 @@ function getLineSlope(line_path) {
     return s * bbox.height / bbox.width;
 }
 
+function findExtremePerpPoint(pt, k) {
+    // make v1 (along line)
+    var v1 = [1, -k];
+
+    // search for extreme point
+    var p_extreme = pt;
+    var d_extreme = 0;
+    svg.selectAll('.vertex')
+        .filter(function() {
+            var p = d3.select(this);
+            return !p.classed('defocused') && !p.classed('removed');
+        })
+        .each(function() {
+            var p  = d3.select(this),
+                px = parseFloat(p.attr("cx")),
+                py = parseFloat(p.attr("cy"));
+
+            // calc distance
+            var v2 = [px - pt[0], py - pt[1]];
+            var d  = Math.abs(v1[0] * v2[1] - v1[1] * v2[0]);
+
+            // calc if point is above or below line
+            var ptBelow = (py - px * -k) < (pt[1] - pt[0] * -k);
+
+            if (d > d_extreme && ptBelow) {
+                d_extreme = d;
+                p_extreme = [px, py];
+            }
+        });
+
+    return p_extreme;
+}
+
 function drawMedianTrialBridge(id, speed, delay1, delay2) {
     var actual_bridge = $('.bridge.actual#' + id.split("-").splice(0,2).join("-"))[0],
         trial_bridges = $('.bridge.trial#' + id);
@@ -223,17 +258,10 @@ function drawMedianTrialBridge(id, speed, delay1, delay2) {
         l_max = [bbox_c[0] + width, bbox_c[1] - width * k_med];
 
     // compute offset to animate test bridge
-    var a_bbox = actual_bridge.getBBox()
-    if (k_med >= k) {
-        var actual_x = a_bbox.x;
-        var actual_y = (getLineSlope(actual_bridge) >= 0 ? a_bbox.y + a_bbox.height : a_bbox.y);
-    } else {
-        var actual_x = a_bbox.x + a_bbox.width;
-        var actual_y = (getLineSlope(actual_bridge) >= 0 ? a_bbox.y : a_bbox.y + a_bbox.height);
-    }
-    var med_x    = bbox_c[0] + (actual_x - bbox_c[0]);
-    var med_y    = bbox_c[1] - (actual_x - bbox_c[0]) * k_med;
-    var offset_y = actual_y - med_y;
+    var [extreme_x,extreme_y] = findExtremePerpPoint(bbox_c, k_med);
+    var med_x    = bbox_c[0] + (extreme_x - bbox_c[0]);
+    var med_y    = bbox_c[1] - (extreme_x - bbox_c[0]) * k_med;
+    var offset_y = extreme_y - med_y;
 
     // draw median test
     svg.append('path')
@@ -251,7 +279,7 @@ function drawMedianTrialBridge(id, speed, delay1, delay2) {
         .attr('transform', 'translate(0,' + offset_y + ')');
 }
 
-function defocusExtremeVertices(id, delay) {
+function defocusExtremeVertices(id, delay, highlight) {
     var actual_bridge = $('.bridge.actual#' + id.split("-").splice(0,2).join("-"))[0],
         test_bridge   = $('.bridge.test#' + id)[0];
 
@@ -275,13 +303,17 @@ function defocusExtremeVertices(id, delay) {
             if (p_defocus.length != 0) vertices.splice(vertices.indexOf(p_defocus), 1);
 
             svg.selectAll("circle")
-                .each(function(d) {
+                .filter(function() {
                     var p         = d3.select(this),
                         [p_x,p_y] = [parseFloat(p.attr("cx")), parseFloat(p.attr("cy"))];
-                    if (p_x == p_defocus[0] && p_y == p_defocus[1]) {
-                        p.classed('defocused', true).attr('id', id);
-                    }
-                });
+                    return p_x == p_defocus[0] && p_y == p_defocus[1];
+
+                })
+                .attr('id', id)
+                .classed('defocused', !highlight)
+                .classed('highlight',  highlight);
+
+
         }
     }, delay);
 }
@@ -319,7 +351,7 @@ function animateBridgeFinding_recursive(vertices, id, trial) {
 
     setTimeout(function() {
         var k_med = getLineSlope($('.bridge.test#' + id + '-' + trial)[0]);
-        if (k_med - e > k || k_med + e < k) defocusExtremeVertices(id + '-' + trial, 0);
+        if (k_med - e > k || k_med + e < k) defocusExtremeVertices(id + '-' + trial, 0, false);
     }, 1200);
 
     setTimeout(function() {
@@ -434,9 +466,24 @@ var svg = d3.select(".svg-container").append("svg")
             vertices.push(d3.mouse(this));
             redrawVerticies();
 
-            // check if at least 5 edges in convex hull
-            var ch = d3.polygonHull(vertices);
-            if (ch && ch.length >= 8) $('.next-button').removeClass('disabled');
+            // check if at least 5 edges in upper hull
+            var [xs, ys] = unzip(vertices);
+            var x_min = [width, 0],
+                x_max = [0, 0];
+            for (var i = 0; i < vertices.length; i++) {
+                if (vertices[i][0] < x_min[0]) x_min = vertices[i];
+                if (vertices[i][0] > x_max[0]) x_max = vertices[i];
+            }
+
+            // make test if point is above or below divider
+            var sl = (x_max[1] - x_min[1]) / (x_max[0] - x_min[0]);
+            var inLowerHull = function(d) {
+                return d[1] <= (d[0] - x_min[0]) * sl + x_min[1]
+            }
+
+            var upperHullCount = svg.selectAll('.vertex').filter(function(d) { return inLowerHull(d); }).size();
+            if (upperHullCount >= 6) $('.next-button').removeClass('disabled');
+            else $('.next-button').addClass('disabled');
         }
     });
 
@@ -683,10 +730,74 @@ var fxns = [
 
         // show median test
         next: function() {
+            disableProgressButtons(400);
+
+            var actual_bridge = $('.bridge.actual#a-1')[0],
+                trial_bridges = $('.bridge.trial#a-1-1');
+            var k  = getLineSlope(actual_bridge);
+                ks = [ ];
+
+            // accumulate slopes to use for median
+            for (var i = 0; i < trial_bridges.length; i++) {
+                ks.push(getLineSlope(trial_bridges[i]));
+            }
+
+            // calculate median slope (forced to be actual value, not average of two)
+            var k_med = (ks.length % 2 == 0 ? ks.sort()[Math.ceil(ks.length / 2)] : d3.median(ks));
+
+            // find edge with same slope
+            for (var i = 0; i < trial_bridges.length; i++) {
+                if (getLineSlope(trial_bridges[i]) == k_med) med_bridge = trial_bridges[i];
+            }
+
+            // compute center of median bridge
+            var bbox   = med_bridge.getBBox();
+            var bbox_c = [bbox.x + bbox.width / 2, bbox.y + bbox.height / 2];
+
+            // extend median bridge
+            var l_min = [bbox_c[0] - width, bbox_c[1] + width * k_med],
+                l_max = [bbox_c[0] + width, bbox_c[1] - width * k_med];
+
+            // draw median test
+            svg.append('path')
+                .classed('bridge', true)
+                .classed('test', true)
+                .attr('id', "a-1-1")
+                .attr('d', line([l_min, l_max]) + 'Z')
+                .style('opacity', 0)
+                .transition()
+                .style('opacity', 1);
+        },
+    },{ // step ...
+        prev: function() { 
+            disableProgressButtons(400);
+
+            svg.select('.bridge.test#a-1-1')
+                .classed('removed', true)
+                .transition()
+                .delay(400)
+                .remove();
+
+        },
+        next: function() {
             disableProgressButtons(1300);
 
-            // calc position of median test
-            drawMedianTrialBridge('a-1-1', 500, 800, 0);
+            // compute offset to animate test bridge
+            var bbox   = $('.bridge.test#a-1-1')[0].getBBox(),
+                bbox_c = [bbox.x + bbox.width / 2, bbox.y + bbox.height / 2],
+                k_med  = getLineSlope($('.bridge.test#a-1-1')[0]);
+
+            var [extreme_x,extreme_y] = findExtremePerpPoint(bbox_c, k_med);
+            var med_x    = bbox_c[0] + (extreme_x - bbox_c[0]);
+            var med_y    = bbox_c[1] - (extreme_x - bbox_c[0]) * k_med;
+            var offset_y = extreme_y - med_y;
+
+            // transition median bridge
+            svg.select('.bridge.test#a-1-1')
+                .transition()
+                .delay(800)
+                .duration(500)
+                .attr('transform', 'translate(0,' + offset_y + ')');
 
             // update instructions based on results
             var k = getLineSlope($('.bridge.actual#a-1')[0]);
@@ -695,9 +806,9 @@ var fxns = [
             if (t - e <= k && t + e >= k) {
                 updateInstructions("As we can see, our test edge with slope $k_{median}$ does form a bridge between red and blue points. So we found our bridge edge!");
             } else if (t < k) {
-                updateInstructions("As we can see, our median slope is too shallow so we will have to try again. In order to prune our search, we should get rid of $\\frac{1}{4}$ of our points by ignoring the right endpoints of our shallow lines since they appear to be skewing $k_{median}$. With fewer points, hopefully we'll have better luck!");
+                updateInstructions("Given that our sweep ends on a red point, we can see our median slope is too shallow so we will have to try again. In order to prune our search, we should get rid of $\\frac{1}{4}$ of our points by ignoring the right endpoints of our shallow lines since we know they are not on the convex hull. With fewer points, hopefully we'll have better luck!");
             } else {
-                updateInstructions("As we can see, our median slope is too steep so we will have to try again. In order to prune our search, we should get rid of $\\frac{1}{4}$ of our points by ignoring the left endpoints of our steep lines since they appear to be skewing $k_{median}$. With fewer points, hopefully we'll have better luck!");
+                updateInstructions("Given that our sweep ends on a blue point, we can see our median slope is too steep so we will have to try again. In order to prune our search, we should get rid of $\\frac{1}{4}$ of our points by ignoring the left endpoints of our steep lines since they we know they are not on the convex hull. With fewer points, hopefully we'll have better luck!");
             }
 
             // store backups
@@ -706,13 +817,41 @@ var fxns = [
         },
     },{ // step 7: median test on second pairing 
         prev: function() {
-            disableProgressButtons(400);
+            fxn_i--;
+            $(".prev-button").trigger("click");
+            fxn_i++;
+        },
+        next: function() {
+            disableProgressButtons(800);
 
-            svg.selectAll('.bridge.test')
-                .classed('removed', true)
-                .transition()
-                .delay(400)
-                .remove();
+            var actual_bridge = $('.bridge.actual#a-1')[0],
+                test_bridge   = $('.bridge.test#a-1-1')[0];
+
+            // if previous iteration was a success, skip this step
+            if (getLineSlope(test_bridge) == getLineSlope(actual_bridge)) {
+                fxn_i++;
+                $(".next-button").trigger("click");
+                return;
+            }
+
+            // highlight extreme vertices
+            defocusExtremeVertices("a-1-1", 0, true);
+        },
+    },{
+        prev: function() { 
+            svg.selectAll('.vertex.highlight').classed('highlight', false);
+
+            // update instructions based on results
+            var k = getLineSlope($('.bridge.actual#a-1')[0]);
+            var t = getLineSlope($('.bridge.test#a-1-1')[0]);
+            var e = 0.000005;
+            if (t - e <= k && t + e >= k) {
+                updateInstructions("As we can see, our test edge with slope $k_{median}$ does form a bridge between red and blue points. So we found our bridge edge!");
+            } else if (t < k) {
+                updateInstructions("Given that our sweep ends on a red point, we can see our median slope is too shallow so we will have to try again. In order to prune our search, we should get rid of $\\frac{1}{4}$ of our points by ignoring the right endpoints of our shallow lines since we know they are not on the convex hull. With fewer points, hopefully we'll have better luck!");
+            } else {
+                updateInstructions("Given that our sweep ends on a blue point, we can see our median slope is too steep so we will have to try again. In order to prune our search, we should get rid of $\\frac{1}{4}$ of our points by ignoring the left endpoints of our steep lines since they we know they are not on the convex hull. With fewer points, hopefully we'll have better luck!");
+            }
         },
         next: function() {
             disableProgressButtons(3000);
@@ -728,7 +867,8 @@ var fxns = [
             }
 
             // defocus extreme vertices and hide trial / test bridges
-            defocusExtremeVertices("a-1-1", 0);
+            defocusExtremeVertices("a-1-1", 0, false);
+
             svg.selectAll('.bridge.trial#a-1-1').classed('removed', true);
             svg.selectAll('.bridge.test#a-1-1').classed('removed', true);
 
@@ -768,9 +908,9 @@ var fxns = [
                 if (t - e <= k && t + e >= k) {
                     updateInstructions("As we can see, our median slope is a perfect match so we found our bridge!");
                 } else if (t < k) {
-                    updateInstructions("Unfortunately, our median slope again isn't quite right, but we're getting closer. Let's prune and try again, this time ignoring the right endpoints of our shallow edges.");
+                    updateInstructions("Again, we found the median slope of our now reduced point set. However, unfortunately, our new median slope isn't quite right, but we're getting closer. Let's prune and try again, this time ignoring the right endpoints of our shallow edges.");
                 } else {
-                    updateInstructions("Unfortunately, our median slope again isn't quite right, but we're getting closer. Let's prune and try again, this time ignoring the left endpoints of our steeper edges.");
+                    updateInstructions("Again, we found the median slope of our now reduced point set. However, unfortunately, our new median slope isn't quite right, but we're getting closer. Let's prune and try again, this time ignoring the left endpoints of our steeper edges.");
                 }
 
                 // store backups
@@ -801,9 +941,9 @@ var fxns = [
             if (t - e <= k && t + e >= k) {
                 updateInstructions("As we can see, our test edge with slope $k_{median}$ does form a bridge between red and blue points. So we found our bridge edge!");
             } else if (t < k) {
-                updateInstructions("As we can see, our median slope is too shallow so we will have to try again. In order to prune our search, we should get rid of $\\frac{1}{4}$ of our points by ignoring the right endpoints of our shallow lines since they appear to be skewing $k_{median}$. With fewer points, hopefully we'll have better luck!");
+                updateInstructions("As we can see, our median slope is too shallow so we will have to try again. In order to prune our search, we should get rid of $\\frac{1}{4}$ of our points by ignoring the right endpoints of our shallow lines since we know they are not on the convex hull. With fewer points, hopefully we'll have better luck!");
             } else {
-                updateInstructions("As we can see, our median slope is too steep so we will have to try again. In order to prune our search, we should get rid of $\\frac{1}{4}$ of our points by ignoring the left endpoints of our steep lines since they appear to be skewing $k_{median}$. With fewer points, hopefully we'll have better luck!");
+                updateInstructions("As we can see, our median slope is too steep so we will have to try again. In order to prune our search, we should get rid of $\\frac{1}{4}$ of our points by ignoring the left endpoints of our steep lines since we know they are not on the convex hull. With fewer points, hopefully we'll have better luck!");
             }
 
             // reveal bridges from previous step
@@ -833,7 +973,7 @@ var fxns = [
             }
 
             // defocus extreme vertices and hide trial / test bridges
-            defocusExtremeVertices("a-1-2", 0);
+            defocusExtremeVertices("a-1-2", 0, false);
             svg.selectAll('.bridge.trial#a-1-2').classed('removed', true);
             svg.selectAll('.bridge.test#a-1-2').classed('removed', true);
 
@@ -900,9 +1040,9 @@ var fxns = [
             if (t - e <= k && t + e >= k) {
                 updateInstructions("Success! Our median slope is a perfect match so we found our bridge!");
             } else if (t < k) {
-                updateInstructions("Unfortunately, our median slope again isn't quite right, but we're getting closer. Let's prune and try again, this time ignoring the right endpoints of our shallow edges.");
+                updateInstructions("Again, we found the median slope of our now reduced point set. However, unfortunately, our new median slope isn't quite right, but we're getting closer. Let's prune and try again, this time ignoring the right endpoints of our shallow edges.");
             } else {
-                updateInstructions("Unfortunately, our median slope again isn't quite right, but we're getting closer. Let's prune and try again, this time ignoring the left endpoints of our steeper edges.");
+                updateInstructions("Again, we found the median slope of our now reduced point set. However, unfortunately, our new median slope isn't quite right, but we're getting closer. Let's prune and try again, this time ignoring the left endpoints of our steeper edges.");
             }
 
             // reveal bridges from previous step
@@ -1273,7 +1413,7 @@ var fxns = [
             setTimeout(function() {
                 svg.selectAll('.vertex').classed('defocused', false);
                 svg.selectAll('.bridge.found').classed('defocused', false);
-                updateInstructions("Great, we're done! We found our entire upper hull in $O(n \\log n)$ time. Now that we understand the algorithm, we can apply it to the lower hull and then merge it with our upper hull for the full convex hull of our original $n$ points. <br /> Feel free to refresh the page and try the algorithm out on a different set of points! Also feel free to explore more information on the algorithm via the material both above and below.");
+                updateInstructions("Great, we're done! We found our entire upper hull in $O(n \\log h)$ time. Now that we understand the algorithm, we can apply it to the lower hull and then merge it with our upper hull for the full convex hull of our original $n$ points. <br /> Feel free to refresh the page and try the algorithm out on a different set of points! Also feel free to explore more information on the algorithm via the material below.");
             }, delay);
 
         }
@@ -1286,55 +1426,3 @@ var fxns = [
         }
     }
 ];
-
-// enable forward and back step buttons
-$(document).ready(function() {
-    // initialize instructions
-    updateInstructions(instructions[0]);
-
-    $('.next-button').click(function() {
-        console.log('fxn step: ', fxn_i);
-
-        if (fxn_i < fxns.length - 1 && !$('.next-button').hasClass('disabled')) {
-            updateInstructions(instructions[fxn_i + 1]);
-            fxns[fxn_i].next();
-            fxn_i++;
-        }
-
-        if (fxn_i == fxns.length - 1) $('.next-button').addClass('disabled');
-        if (fxn_i == 1) $('.prev-button').removeClass('disabled');
-    });    
-
-    $('.prev-button').click(function() {
-        console.log('fxn step: ', fxn_i);
-
-        if (fxn_i > 0 && !$('.prev-button').hasClass('disabled')) {
-            updateInstructions(instructions[fxn_i - 1]);
-            fxns[fxn_i].prev();
-            fxn_i--;
-        }
-
-        if (fxn_i == 0) $('.prev-button').addClass('disabled');
-        if (fxn_i == fxns.length - 2) $('.next-button').removeClass('disabled');
-    });
-
-    $(document).keyup(function(e) {
-        if      (e.keyCode == 39) $(".next-button").trigger("click");
-        else if (e.keyCode == 37) $(".prev-button").trigger("click");
-        else if (e.keyCode == 32 && fxn_i == 0) {
-            for (var i = 0; i < 5; i++) {
-                // generate a random point
-                var p_x = Math.random() * (width - 50) + 25;
-                var p_y = Math.random() * (height - 50) + 25;
-
-                // add it to vertices
-                vertices.push([p_x, p_y]);
-                redrawVerticies();
-
-                // check if at least 5 edges in convex hull
-                var ch = d3.polygonHull(vertices);
-                if (ch && ch.length >= 5) $('.next-button').removeClass('disabled');
-            }
-        }
-    });
-});

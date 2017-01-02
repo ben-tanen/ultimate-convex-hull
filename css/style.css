@@ -4,16 +4,62 @@
     font-family: Lato;
 }
 
-.header {
-    text-align: center;
-    margin-bottom: 15px;
+a {
+    color: #77bdee;
+    text-decoration: none;
 }
 
-.main {
+a:hover {
+    text-decoration: underline;
+}
+
+.header {
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.header h1, .header h3 {
+    width: 90%;
+    margin: auto;
+
+}
+
+.about, .main, .footer {
     width: 75%;
     margin: auto;
 }
 
+.about.v2 {
+    margin-top: 15px;
+    margin-bottom: 50px;
+}
+
+.sub_about {
+    margin-bottom: 15px;
+}
+
+.sub_about h3 {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.sub_info {
+    margin-top: 2px;
+}
+
+.sub_info.hidden {
+    display: none;
+}
+
+.info-btn {
+    width: 20px;
+    margin-right: 10px;
+    display: inline-block;
+    vertical-align: middle;
+    cursor: pointer;
+}
+
+/* SVG STYLING */
 .svg-container {
     width: calc(100% - 4px);
     padding: 0 1px 0 1px;
@@ -21,15 +67,17 @@
     cursor: pointer;
 }
 
-
-/* SVG STYLING */
 .vertex {
     opacity: 1;
     radius: 5;
     -webkit-transition: opacity 0.4s ease;
     -moz-transition: opacity 0.4s ease;
     -o-transition: opacity 0.4s ease;
-    transition: opacity 0.4s ease;   
+    transition: opacity 0.4s ease;
+    -webkit-transition: fill 0.4s ease;
+    -moz-transition: fill 0.4s ease;
+    -o-transition: fill 0.4s ease;
+    transition: fill 0.4s ease;
 }
 
 .vertex.removed {
@@ -38,6 +86,11 @@
 
 .vertex.defocused {
     opacity: 0.15;
+}
+
+.vertex.highlight {
+    fill: #ff00ff !important;
+    radius: 8 !important;
 }
 
 .median {
