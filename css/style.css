@@ -1,7 +1,7 @@
 * {
     margin: 0;
     padding: 0;
-    font-family: Lato;
+    font-family: "Overpass", "Lato", sans-serif;
 }
 
 a {
@@ -14,6 +14,7 @@ a:hover {
 }
 
 .header {
+    margin-top: 10px;
     margin-bottom: 15px;
     text-align: center;
 }
@@ -21,7 +22,6 @@ a:hover {
 .header h1, .header h3 {
     width: 90%;
     margin: auto;
-
 }
 
 .about, .main, .footer {
@@ -186,7 +186,7 @@ a:hover {
 
 .prev-button p, .next-button p {
     text-align: center;
-    margin-top: 33px;
+    margin-top: 28px;
 }
 
 .prev-button.disabled, .next-button.disabled {
@@ -202,6 +202,7 @@ a:hover {
     height: 100%;
     display: inline-block;
     vertical-align: top;
+    overflow-y: overlay;
 }
 
 #instruction {
