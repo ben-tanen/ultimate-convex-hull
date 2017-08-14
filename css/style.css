@@ -67,6 +67,10 @@ a:hover {
     cursor: pointer;
 }
 
+.svg-container svg {
+    width: 100%;
+}
+
 .vertex {
     opacity: 1;
     radius: 5;
